@@ -32,4 +32,4 @@
 *.app
 
 # Remote respository file
-enc28j60_hw.h
+external/*

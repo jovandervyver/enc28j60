@@ -13,15 +13,15 @@
   }
 
   void hardware_platform_free(void* ptr) {
-    free(ptr);
+    (void) free(ptr);
   }
 
   void hardware_platform_sleep_us(const int8_t value) {
-    delayMicroseconds(value);
+    (void) delayMicroseconds(value);
   }
 
   void hardware_platform_sleep_ms(const int8_t value) {
-    delay(value);
+    (void) delay(value);
   }
 
   unsigned long hardware_platform_milliseconds() {

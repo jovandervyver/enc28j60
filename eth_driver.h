@@ -13,8 +13,6 @@
     ETH_TX_ERROR,
     ETH_TX_SUCCESS
   } tx_status_t;
-  
-  typedef struct _eth_driver_t eth_driver_t;
 
   /**
    * Receive the next packet into the packet buffer
@@ -41,7 +39,7 @@
    * Returns -1 if attempting to write beyond the buffer
    */
   typedef eth_frm_len_t (*eth_write_tx_buffer_f)(void* dev, const uint8_t* input_buffer, eth_frm_len_t buffer_size);
-  #define ETH_WRITE_TX_BUFFER(_driver, _input_buffer, _buffer_size) (_driver)->eth_write_tx_buffer((_driver)->dev, input_buffer, buffer_size)
+  #define ETH_WRITE_TX_BUFFER(_driver, _input_buffer, _buffer_size) (_driver)->eth_write_tx_buffer((_driver)->dev, _input_buffer, buffer_size)
 
   /**
    * Send the packet currently in the transmit buffer
@@ -50,7 +48,7 @@
   typedef tx_status_t (*eth_tx_start_f)(void* dev);
   #define ETH_TX_START(_driver) (_driver)->eth_tx_start((_driver)->dev)
 
-  struct _eth_driver_t {
+  typedef struct {
     void* dev;
 
     /**
@@ -60,6 +58,6 @@
     eth_read_rx_packet_f eth_read_rx_packet;
     eth_write_tx_buffer_f eth_write_tx_buffer;
     eth_tx_start_f eth_tx_start;
-  };
+  } eth_driver_t;
 
 #endif

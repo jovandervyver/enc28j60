@@ -1,11 +1,12 @@
 #ifndef __ENC28J60_CONSTANTS_H__
 #define __ENC28J60_CONSTANTS_H__
 
-#include "enc28j60_hw.h"
+#include "external/enc28j60_hw.h"
 /** 
- * Source for enc28j60_hw.h
- * 
+ * Download from 
  * https://raw.githubusercontent.com/torvalds/linux/master/drivers/net/ethernet/microchip/enc28j60_hw.h
+ *
+ * To directory "external"
  */
 
 /**

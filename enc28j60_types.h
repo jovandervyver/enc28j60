@@ -10,10 +10,10 @@ extern "C" {
   /**
    * Enum defining the ENC28J60 Chip Select current state
    */
-    typedef enum {
-      ENC28J60_CHIP_SELECT_LOW,
-      ENC28J60_CHIP_SELECT_HIGH
-    } enc28j60_chip_select_t;
+  typedef enum {
+    ENC28J60_CHIP_SELECT_LOW,
+    ENC28J60_CHIP_SELECT_HIGH
+  } enc28j60_chip_select_t;
 
   /**
    * Set the ENC28J60 device Chip Select to the value provided

@@ -15,13 +15,13 @@ typedef struct {
   enc28j60_spi_txrx_f spi_function;
 } enc28j60_dev_t;
 
-#define ENC28J60_DEV(eth_driver_ptr) ((enc28j60_dev_t*) eth_driver_ptr->dev)
+#define ENC28J60_DEV(eth_driver_ptr) ((enc28j60_dev_t*) ((eth_driver_ptr)->dev))
 
-#define ENC28J60_CS_LOW(dev_ptr) dev_ptr->chip_select_function(ENC28J60_CHIP_SELECT_LOW);
-#define ENC28J60_CS_HIGH(dev_ptr) dev_ptr->chip_select_function(ENC28J60_CHIP_SELECT_HIGH);
+#define ENC28J60_CS_LOW(dev_ptr) (void) dev_ptr->chip_select_function(ENC28J60_CHIP_SELECT_LOW)
+#define ENC28J60_CS_HIGH(dev_ptr) (void) dev_ptr->chip_select_function(ENC28J60_CHIP_SELECT_HIGH)
 
-#define ENC28J60_WRITE_BYTE(dev_ptr, val) (void) dev_ptr->spi_function((uint8_t) val)
-#define ENC28J60_READ_BYTE(dev_ptr) dev_ptr->spi_function(((uint8_t) 0x00u))
+#define ENC28J60_WRITE_BYTE(dev_ptr, val) (void) (dev_ptr)->spi_function((uint8_t) val)
+#define ENC28J60_READ_BYTE(dev_ptr) (uint8_t) ((dev_ptr)->spi_function(((uint8_t) 0x00u)))
 
 /**
  * Implementation
