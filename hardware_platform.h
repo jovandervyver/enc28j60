@@ -26,7 +26,7 @@ extern "C" {
   /**
    * Get some type of elapsed milliseconds from the platform
    */
-  unsigned long hardware_platform_milliseconds();
+  uint_least32_t hardware_platform_milliseconds();
 
   /**
    * If the platform supports any kind of output (serial, monitor, etc.)

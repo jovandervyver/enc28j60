@@ -24,7 +24,7 @@
     (void) delay(value);
   }
 
-  unsigned long hardware_platform_milliseconds() {
+  uint_least32_t hardware_platform_milliseconds() {
     return millis();
   }
 
