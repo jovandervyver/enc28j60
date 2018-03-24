@@ -438,17 +438,17 @@ static uint8_t enc28j60_configure(enc28j60_dev_t* device, const mac_addr_t mac_a
   return 0;
 }
 
-static eth_frm_len_t enc28j60_next_rx_packet(eth_driver_t* driver) {
-  while(enc28j60_read_register_byte(ENC28J60_DEV(driver), EPKTCNT)) {
+static eth_frm_len_t enc28j60_next_rx_packet(enc28j60_dev_t* device) {
+  while(enc28j60_read_register_byte(device, EPKTCNT)) {
     /**
      * Advance the packet pointer to the start of the next packet
      */
-    enc28j60_write_register_word(ENC28J60_DEV(driver), ERXRDPT, enc28j60_erxrdpt_errata(ENC28J60_DEV(driver)->next_packet_pointer));
+    enc28j60_write_register_word(device, ERXRDPT, enc28j60_erxrdpt_errata(device->next_packet_pointer));
 
     /**
      * Set the read pointer to the start of the next packet
      */
-    enc28j60_write_register_word(ENC28J60_DEV(driver), ERDPT, ENC28J60_DEV(driver)->next_packet_pointer);
+    enc28j60_write_register_word(device, ERDPT, device->next_packet_pointer);
 
     /**
      * Parse the receive status vector
@@ -457,14 +457,14 @@ static eth_frm_len_t enc28j60_next_rx_packet(eth_driver_t* driver) {
      *   bytes 5-6: status bits
      */
     uint8_t bytes[RSV_SIZE];
-    enc28j60_buffer_read(ENC28J60_DEV(driver), bytes, RSV_SIZE);
+    enc28j60_buffer_read(device, bytes, RSV_SIZE);
 
-    ENC28J60_DEV(driver)->next_packet_pointer = (enc28j60_mem_ptr_t) enc28j60_uint16(bytes[0], bytes[1]);
+    device->next_packet_pointer = (enc28j60_mem_ptr_t) enc28j60_uint16(bytes[0], bytes[1]);
 
     /**
      * Decrement the packet counter by 1
      */
-    enc28j60_set_register_bit(ENC28J60_DEV(driver), ECON2, ECON2_PKTDEC);
+    enc28j60_set_register_bit(device, ECON2, ECON2_PKTDEC);
 
     if (RSV_RX_OK & bytes[4]) {
       return (eth_frm_len_t) enc28j60_uint16(bytes[2], bytes[3]);
@@ -474,7 +474,11 @@ static eth_frm_len_t enc28j60_next_rx_packet(eth_driver_t* driver) {
   return -1;
 }
 
-static void enc28j60_read_rx_packet(eth_driver_t* driver, uint8_t* output_buffer, eth_frm_len_t buffer_size) {
+static eth_frm_len_t enc28j60_eth_next_rx_packet(eth_driver_t* driver) {
+  return enc28j60_next_rx_packet(ENC28J60_DEV(driver));
+}
+
+static void enc28j60_eth_read_rx_packet(eth_driver_t* driver, uint8_t* output_buffer, eth_frm_len_t buffer_size) {
   if (0 >= buffer_size) return;
   if (unlikely(buffer_size >= ENC28J60_MAX_FRAME_SIZE)) return;
 
@@ -538,53 +542,57 @@ static uint8_t enc28j60_execute_tx(enc28j60_dev_t* device) {
   return tsv[2];
 }
 
-static eth_frm_len_t enc28j60_write_tx_buffer(eth_driver_t* driver, const uint8_t* buffer, eth_frm_len_t buffer_size) {
+static eth_frm_len_t enc28j60_write_tx_buffer(enc28j60_dev_t* device, const uint8_t* buffer, eth_frm_len_t buffer_size) {
   if (0 >= buffer_size) {
-    return ENC28J60_MAX_FRAME_SIZE - ENC28J60_DEV(driver)->tx_size;
+    return ENC28J60_MAX_FRAME_SIZE - device->tx_size;
   }
 
-  const eth_frm_len_t tx_size = buffer_size + ENC28J60_DEV(driver)->tx_size;
+  const eth_frm_len_t tx_size = buffer_size + device->tx_size;
   if (unlikely(tx_size >= ENC28J60_MAX_FRAME_SIZE)) {
     return -1;
   }
 
-  enc28j60_buffer_write(ENC28J60_DEV(driver), buffer, buffer_size);
-  ENC28J60_DEV(driver)->tx_size = tx_size;
+  enc28j60_buffer_write(device, buffer, buffer_size);
+  device->tx_size = tx_size;
 
   return ENC28J60_MAX_FRAME_SIZE - tx_size;
 }
 
-static tx_status_t enc28j60_tx_start(eth_driver_t* driver) {  
-  if (unlikely(0 >= ENC28J60_DEV(driver)->tx_size)) {
+static eth_frm_len_t enc28j60_eth_write_tx_buffer(eth_driver_t* driver, const uint8_t* buffer, eth_frm_len_t buffer_size) {
+  return enc28j60_write_tx_buffer(ENC28J60_DEV(driver), buffer, buffer_size);
+}
+
+static tx_status_t enc28j60_tx_start(enc28j60_dev_t* device) {  
+  if (unlikely(0 >= device->tx_size)) {
     return ETH_TX_BUFFER_EMPTY;
   }
 
   /**
    *  Appropriately program the ETXND Pointer. It should point to the last byte in the data payload.
    */
-  enc28j60_write_register_word(ENC28J60_DEV(driver), ETXND, ENC28J60_TXSTART + 1 + ENC28J60_DEV(driver)->tx_size);
+  enc28j60_write_register_word(device, ETXND, ENC28J60_TXSTART + 1 + device->tx_size);
 
   /**
    * Start transmission
    */
-  const uint8_t result = enc28j60_execute_tx(ENC28J60_DEV(driver));
+  const uint8_t result = enc28j60_execute_tx(device);
 
   /**
    * Reset transmit memory for next write
    */
-  enc28j60_write_register_word(ENC28J60_DEV(driver), ETXST, ENC28J60_TXSTART);
+  enc28j60_write_register_word(device, ETXST, ENC28J60_TXSTART);
 
   /**
    * Set the write pointer
    */
-  enc28j60_write_register_word(ENC28J60_DEV(driver), EWRPT, ENC28J60_TXSTART);
+  enc28j60_write_register_word(device, EWRPT, ENC28J60_TXSTART);
 
   /**
    * Write the per packet control byte
    */
-  enc28j60_write_op(ENC28J60_DEV(driver), ENC28J60_WRITE_BUF_MEM, 0x00u, 0x00u);
+  enc28j60_write_op(device, ENC28J60_WRITE_BUF_MEM, 0x00u, 0x00u);
 
-  ENC28J60_DEV(driver)->tx_size = 0;
+  device->tx_size = 0;
 
   if (result & TSV_TX_DONE) {
     return ETH_TX_SUCCESS;
@@ -593,6 +601,10 @@ static tx_status_t enc28j60_tx_start(eth_driver_t* driver) {
   } else {
     return ETH_TX_ERROR;
   }
+}
+
+static tx_status_t enc28j60_eth_tx_start(eth_driver_t* driver) {
+  return enc28j60_tx_start(ENC28J60_DEV(driver));
 }
 
 /**
@@ -790,10 +802,10 @@ enc28j60_init_status_t enc28j60_eth_driver(
   }
 
   driver->dev = (void*) device;
-  driver->eth_next_rx_packet = &enc28j60_next_rx_packet;
-  driver->eth_read_rx_packet = &enc28j60_read_rx_packet;
-  driver->eth_write_tx_buffer = &enc28j60_write_tx_buffer;
-  driver->eth_tx_start = &enc28j60_tx_start;
+  driver->eth_next_rx_packet = &enc28j60_eth_next_rx_packet;
+  driver->eth_read_rx_packet = &enc28j60_eth_read_rx_packet;
+  driver->eth_write_tx_buffer = &enc28j60_eth_write_tx_buffer;
+  driver->eth_tx_start = &enc28j60_eth_tx_start;
 
   return ENC28J60_INIT_SUCCESS;
 }
