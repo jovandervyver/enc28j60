@@ -1,13 +1,13 @@
 #ifndef __HARDWARE__PLATFORM__H__
 #define __HARDWARE__PLATFORM__H__
-
-#include "hardware_platform_defs.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+  #include "hardware_platform_defs.h"
   #include <stdint.h>
+
+  typedef uint32_t millisecond_timestamp_t;
 
   /**
    * Function to allocate & release memory
@@ -26,7 +26,7 @@ extern "C" {
   /**
    * Get some type of elapsed milliseconds from the platform
    */
-  uint_least32_t hardware_platform_milliseconds();
+  millisecond_timestamp_t hardware_platform_milliseconds();
 
   /**
    * If the platform supports any kind of output (serial, monitor, etc.)
@@ -38,5 +38,4 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
 #endif

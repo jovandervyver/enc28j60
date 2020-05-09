@@ -1,7 +1,7 @@
-#ifndef __ENC28J60_CONSTANTS_H__
-#define __ENC28J60_CONSTANTS_H__
+#ifndef __ENC28J60__CONSTANTS_H__
+#define __ENC28J60__CONSTANTS_H__
 
-#include "external/enc28j60_hw.h"
+#include "enc28j60_hw.h"
 /** 
  * Download from 
  * https://raw.githubusercontent.com/torvalds/linux/master/drivers/net/ethernet/microchip/enc28j60_hw.h
@@ -36,7 +36,7 @@
  * buffer.
  */
 #define ENC28J60_RXSTART          0
-#define ENC28J60_RXEND            ENC28J60_TXSTART - 2
+#define ENC28J60_RXEND            (ENC28J60_TXSTART - 2)
 
 /**
  * Word registers. Each has a L and H, L being the lower address and H the upper.

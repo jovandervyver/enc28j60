@@ -8,26 +8,24 @@
   #include "hardware_platform.h"
 
   void* hardware_platform_malloc(const int8_t size) {
-    void* result = (void*) malloc((size_t) size);
-    return result;
+    return (void*) malloc(((size_t) size));
   }
 
   void hardware_platform_free(void* ptr) {
-    (void) free(ptr);
+    free(ptr);
   }
 
   void hardware_platform_sleep_us(const int8_t value) {
-    (void) delayMicroseconds(value);
+    delayMicroseconds(value);
   }
 
   void hardware_platform_sleep_ms(const int8_t value) {
-    (void) delay(value);
+    delay(value);
   }
 
-  uint_least32_t hardware_platform_milliseconds() {
-    return millis();
+  millisecond_timestamp_t hardware_platform_milliseconds() {
+    return (millisecond_timestamp_t) millis();
   }
-
 
   void hardware_platform_print_cstring(const char* cstring) {
     Serial.print(cstring);
