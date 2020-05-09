@@ -4,8 +4,6 @@
 #include "hardware_platform.h"
 
 typedef uint8_t  enc28j60_reg_t;
-typedef uint8_t  enc28j60_addr_t;
-typedef uint16_t enc28j60_mem_ptr_t;
 
 #define ENC28J60_CS_LOW(_dev_) \
   CHIP_SELECT_FUNCTION((_dev_), ENC28J60_CHIP_SELECT_LOW)
@@ -43,34 +41,34 @@ typedef uint16_t enc28j60_mem_ptr_t;
 #define ENC28J60_MAX_RECEIVE_LOOP_COUNT  32
 
 static inline uint16_t enc28j60_erxrdpt_errata(const uint16_t value) {
-  /**
-   * From errata:
-   *
-   *  Module: Memory (Ethernet Buffer)
-   *
-   * The receive hardware may corrupt the circular receive buffer (including the
-   * Next Packet Pointer and receive status vector fields) when an even value
-   * is programmed into the ERXRDPTH:ERXRDPTL registers.
-   *
-   * Work around:
-   *
-   * Ensure that only odd addresses are written to the ERXRDPT registers.
-   * Assuming that ERXND contains an odd value, many applications can derive
-   * a suitable value to write to ERXRDPT by subtracting one from the 
-   * Next Packet Pointer (a value always ensured to be even because of hardware padding)
-   * and then compensating for a potential ERXST to ERXND wraparound.
-   *
-   * Assuming that the receive buffer area does not span the 1FFFh to 0000h memory 
-   * boundary, the logic in Example 1 will ensure that ERXRDPT is programmed with an odd value:
-   *
-   * EXAMPLE1:
-   *
-   * if (Next Packet Pointer – 1 < ERXST) or (Next Packet Pointer – 1 > ERXND)
-   *  then:
-   *    ERXRDPT = ERXND
-   *  else:
-   *    ERXRDPT = Next Packet Pointer – 1
-   */
+  /**
+   * From errata:
+   *
+   * Module: Memory (Ethernet Buffer)
+   *
+   * The receive hardware may corrupt the circular receive buffer (including the
+   * Next Packet Pointer and receive status vector fields) when an even value
+   * is programmed into the ERXRDPTH:ERXRDPTL registers.
+   *
+   * Work around:
+   *
+   * Ensure that only odd addresses are written to the ERXRDPT registers.
+   * Assuming that ERXND contains an odd value, many applications can derive
+   * a suitable value to write to ERXRDPT by subtracting one from the 
+   * Next Packet Pointer (a value always ensured to be even because of hardware padding)
+   * and then compensating for a potential ERXST to ERXND wraparound.
+   *
+   * Assuming that the receive buffer area does not span the 1FFFh to 0000h memory 
+   * boundary, the logic in Example 1 will ensure that ERXRDPT is programmed with an odd value:
+   *
+   * EXAMPLE1:
+   *
+   * if (Next Packet Pointer - 1 < ERXST) or (Next Packet Pointer - 1 > ERXND)
+   *  then:
+   *    ERXRDPT = ERXND
+   *  else:
+   *    ERXRDPT = Next Packet Pointer - 1
+   */
   if ((value <= ENC28J60_RXSTART) || (value >= ENC28J60_RXEND)) {
     return ENC28J60_RXEND;
   } else {
@@ -78,7 +76,12 @@ static inline uint16_t enc28j60_erxrdpt_errata(const uint16_t value) {
   }
 }
 
-static void enc28j60_write_op(const enc28j60_dev_t* dev, const enc28j60_reg_t op, const enc28j60_addr_t address, const uint8_t value) {
+static void enc28j60_write_op(
+  const enc28j60_dev_t* dev,
+  const enc28j60_reg_t op,
+  const enc28j60_addr_t address,
+  const uint8_t value) {
+
   ENC28J60_CS_LOW(dev);
 
   ENC28J60_WRITE_BYTE(dev, op | (address & ADDR_MASK));
@@ -87,7 +90,11 @@ static void enc28j60_write_op(const enc28j60_dev_t* dev, const enc28j60_reg_t op
   ENC28J60_CS_HIGH(dev);
 }
 
-static uint8_t enc28j60_read_op(const enc28j60_dev_t* dev, const enc28j60_reg_t op, const enc28j60_addr_t address) {
+static uint8_t enc28j60_read_op(
+  const enc28j60_dev_t* dev,
+  const enc28j60_reg_t op,
+  const enc28j60_addr_t address) {
+
   ENC28J60_CS_LOW(dev);
 
   ENC28J60_WRITE_BYTE(dev, (op | (address & ADDR_MASK)));
@@ -122,38 +129,66 @@ static void enc28j60_set_bank(enc28j60_dev_t* dev, enc28j60_addr_t address) {
   }
 }
 
-static void enc28j60_set_register_bit(enc28j60_dev_t* dev, const enc28j60_addr_t address, const uint8_t mask) {
+static void enc28j60_set_register_bit(
+  enc28j60_dev_t* dev,
+  const enc28j60_addr_t address,
+  const uint8_t mask) {
+
   enc28j60_set_bank(dev, address);
   enc28j60_write_op(dev, ENC28J60_BIT_FIELD_SET, address, mask);
 }
 
-static void enc28j60_clear_register_bit(enc28j60_dev_t* dev, const enc28j60_addr_t address, const uint8_t mask) {
+static void enc28j60_clear_register_bit(
+  enc28j60_dev_t* dev,
+  const enc28j60_addr_t address,
+  const uint8_t mask) {
+
   enc28j60_set_bank(dev, address);
   enc28j60_write_op(dev, ENC28J60_BIT_FIELD_CLR, address, mask);
 }
 
-static void enc28j60_write_register_byte(enc28j60_dev_t* dev, const enc28j60_addr_t address, const uint8_t value) {
+static void enc28j60_write_register_byte(
+  enc28j60_dev_t* dev,
+  const enc28j60_addr_t address,
+  const uint8_t value) {
+
   enc28j60_set_bank(dev, address);
   enc28j60_write_op(dev, ENC28J60_WRITE_CTRL_REG, address, value);
 }
 
-static uint8_t enc28j60_read_register_byte(enc28j60_dev_t* dev, const enc28j60_addr_t address) {
+static uint8_t enc28j60_read_register_byte(
+  enc28j60_dev_t* dev,
+  const enc28j60_addr_t address) {
+
   enc28j60_set_bank(dev, address);
   return enc28j60_read_op(dev, ENC28J60_READ_CTRL_REG, address);
 }
 
-static void enc28j60_write_register_word(enc28j60_dev_t* dev, const enc28j60_addr_t address, const uint16_t value) {
+static void enc28j60_write_register_word(
+  enc28j60_dev_t* dev,
+  const enc28j60_addr_t address,
+  const uint16_t value) {
+
   enc28j60_set_bank(dev, address);
 
-  enc28j60_write_op(dev, ENC28J60_WRITE_CTRL_REG, address, (uint8_t) value);
-  enc28j60_write_op(dev, ENC28J60_WRITE_CTRL_REG, address + 1, (uint8_t) (value >> 8));
+  enc28j60_write_op(
+    dev, ENC28J60_WRITE_CTRL_REG, address, ((uint8_t) value));
+
+  enc28j60_write_op(
+    dev, ENC28J60_WRITE_CTRL_REG, (address + 1), ((uint8_t) (value >> 8)));
 }
 
-static uint16_t enc28j60_read_register_word(enc28j60_dev_t* dev, const enc28j60_addr_t address) {
+static uint16_t enc28j60_read_register_word(
+  enc28j60_dev_t* dev,
+  const enc28j60_addr_t address) {
+
   enc28j60_set_bank(dev, address);
 
-  const uint8_t low = enc28j60_read_op(dev, ENC28J60_READ_CTRL_REG, address);
-  const uint8_t high = enc28j60_read_op(dev, ENC28J60_READ_CTRL_REG, address + 1);
+  const uint8_t low = enc28j60_read_op(
+    dev, ENC28J60_READ_CTRL_REG, address);
+
+  const uint8_t high = enc28j60_read_op(
+    dev, ENC28J60_READ_CTRL_REG, (address + 1));
 
   return ENC28J60_UINT16(low, high);
 }
@@ -179,11 +214,7 @@ static void enc28j60_reset(enc28j60_dev_t* dev) {
   ENC28J60_WRITE_BYTE(dev, ENC28J60_SOFT_RESET);
   ENC28J60_CS_HIGH(dev);
 
-  hardware_platform_sleep_ms(1);
-  uint8_t count = 6;
-  do { // Sleep 300ms
-    hardware_platform_sleep_us(50);
-  } while(--count);
+  hardware_platform_sleep_ms(2);
 
   /**
    * Whenever a reset is done, ECON1 will inevitable need to be cleared next
@@ -191,7 +222,11 @@ static void enc28j60_reset(enc28j60_dev_t* dev) {
   enc28j60_write_register_byte(dev, ECON1, 0);
 }
 
-static void enc28j60_buffer_write(const enc28j60_dev_t* dev, const uint8_t* bytes, eth_frm_len_t length) {
+static void enc28j60_buffer_write(
+  const enc28j60_dev_t* dev,
+  const uint8_t* bytes,
+  eth_frm_len_t length) {
+
   ENC28J60_CS_LOW(dev);
   ENC28J60_WRITE_BYTE(dev, ENC28J60_WRITE_BUF_MEM);
 
@@ -203,7 +238,11 @@ static void enc28j60_buffer_write(const enc28j60_dev_t* dev, const uint8_t* byte
   ENC28J60_CS_HIGH(dev);
 }
 
-static void enc28j60_buffer_read(const enc28j60_dev_t* dev, uint8_t* bytes, eth_frm_len_t length) {
+static void enc28j60_buffer_read(
+  const enc28j60_dev_t* dev,
+  uint8_t* bytes,
+  eth_frm_len_t length) {
+
   ENC28J60_CS_LOW(dev);
   ENC28J60_WRITE_BYTE(dev, ENC28J60_READ_BUF_MEM);
 
@@ -226,23 +265,30 @@ static inline uint8_t enc28j60_phy_wait(enc28j60_dev_t* dev) {
      */
     hardware_platform_sleep_us(14);
 
-    if (likely(!enc28j60_read_register_byte(dev, MISTAT) & MISTAT_BUSY)) {
+    if (likely(!
+      enc28j60_read_register_byte(dev, MISTAT) & MISTAT_BUSY)) {
       return 1;
     }
-
   } while(--timeout);
 
   return 0;
 }
 
-static uint8_t enc28j60_phy_write(enc28j60_dev_t* dev, const enc28j60_addr_t address, const uint16_t value) {
+static uint8_t enc28j60_phy_write(
+  enc28j60_dev_t* dev,
+  const enc28j60_addr_t address,
+  const uint16_t value) {
+
   enc28j60_write_register_byte(dev, MIREGADR, address);
   enc28j60_write_register_word(dev, MIWR, value);
 
   return enc28j60_phy_wait(dev);
 }
 
-static uint16_t enc28j60_phy_read(enc28j60_dev_t* dev, const enc28j60_addr_t address) {
+static uint16_t enc28j60_phy_read(
+  enc28j60_dev_t* dev,
+  const enc28j60_addr_t address) {
+
   enc28j60_write_register_byte(dev, MIREGADR, address);
   enc28j60_write_register_byte(dev, MICMD, MICMD_MIIRD);
 
@@ -254,7 +300,11 @@ static uint16_t enc28j60_phy_read(enc28j60_dev_t* dev, const enc28j60_addr_t add
   }
 }
 
-static uint8_t enc28j60_configure(enc28j60_dev_t* dev, const mac_addr_t mac_address, const uint8_t full_duplex) {
+static uint8_t enc28j60_configure(
+  enc28j60_dev_t* dev,
+  const mac_addr_t mac_address,
+  const uint8_t full_duplex) {
+
   enc28j60_reset(dev);
 
   /**
@@ -270,9 +320,9 @@ static uint8_t enc28j60_configure(enc28j60_dev_t* dev, const mac_addr_t mac_addr
     #error "ENC28J60_RXSTART >= ENC28J60_RXEND"
   #endif
 
-  #if ((ENC28J60_RXEND % 2) == 0)
-    #error "ENC28J60_RXEND must be an uneven number; see ENC28J60 errata"
-  #endif
+  #if ((ENC28J60_RXEND % 2) == 0)
+    #error "ENC28J60_RXEND must be an uneven number; see ENC28J60 errata"
+  #endif
 
   /**
    * Set the ENC28J60 receive buffer start and end address
@@ -288,10 +338,6 @@ static uint8_t enc28j60_configure(enc28j60_dev_t* dev, const mac_addr_t mac_addr
 
   #if (ENC28J60_TXSTART < 0)
     #error "ENC28J60_TXSTART < 0"
-  #endif
-
-  #if (ENC28J60_TXSTART > ENC28J60_RXEND)
-    #error "ENC28J60_TXSTART > ENC28J60_RXEND; see errata"
   #endif
 
   #if (ENC28J60_TXSTART >= ENC28J60_TXEND)
@@ -344,7 +390,7 @@ static uint8_t enc28j60_configure(enc28j60_dev_t* dev, const mac_addr_t mac_addr
    *   0 = Filter disabled
    */
   enc28j60_write_register_byte(dev, ERXFCON,
-    ERXFCON_UCEN | ERXFCON_CRCEN | ERXFCON_BCEN);
+    (ERXFCON_UCEN | ERXFCON_CRCEN | ERXFCON_BCEN));
 
   /**
    * Initialize MAC
@@ -356,7 +402,7 @@ static uint8_t enc28j60_configure(enc28j60_dev_t* dev, const mac_addr_t mac_addr
    * function.
    */
   enc28j60_write_register_byte(dev, MACON1,
-    MACON1_MARXEN | MACON1_TXPAUS | MACON1_RXPAUS);
+    (MACON1_MARXEN | MACON1_TXPAUS | MACON1_RXPAUS));
 
   /**
    * 2. Configure the PADCFG, TXCRCEN and FULDPX bits of MACON3. Most applications
@@ -367,10 +413,10 @@ static uint8_t enc28j60_configure(enc28j60_dev_t* dev, const mac_addr_t mac_addr
    */
   if (full_duplex) {
     enc28j60_write_register_byte(dev, MACON3,
-      MACON3_PADCFG0 | MACON3_TXCRCEN | MACON3_FRMLNEN | MACON3_FULDPX);
+      (MACON3_PADCFG0 | MACON3_TXCRCEN | MACON3_FRMLNEN | MACON3_FULDPX));
   } else {
     enc28j60_write_register_byte(dev, MACON3,
-      MACON3_PADCFG0 | MACON3_TXCRCEN | MACON3_FRMLNEN);
+      (MACON3_PADCFG0 | MACON3_TXCRCEN | MACON3_FRMLNEN));
 
     /**
      * 3. Configure the bits in MACON4. For conformance to the IEEE 802.3 standard, set the DEFER bit.
@@ -449,10 +495,12 @@ static uint8_t enc28j60_configure(enc28j60_dev_t* dev, const mac_addr_t mac_addr
     }
 
     enc28j60_clear_register_bit(dev, EIR,
-      EIR_DMAIF | EIR_LINKIF | EIR_TXIF | EIR_TXERIF | EIR_RXERIF | EIR_PKTIF);
+      (EIR_DMAIF | EIR_LINKIF | EIR_TXIF | EIR_TXERIF |
+       EIR_RXERIF | EIR_PKTIF));
 
     enc28j60_clear_register_bit(dev, EIE,
-      EIE_INTIE | EIE_PKTIE | EIE_DMAIE | EIE_LINKIE | EIE_TXIE | EIE_TXERIE | EIE_RXERIE);
+      (EIE_INTIE | EIE_PKTIE | EIE_DMAIE | EIE_LINKIE |
+       EIE_TXIE | EIE_TXERIE | EIE_RXERIE));
 
     /**
      * RXEN: Receive Enable bit
@@ -489,17 +537,22 @@ eth_frm_len_t enc28j60_next_rx_packet(enc28j60_dev_t* dev) {
     #error "ENC28J60_MAX_RECEIVE_LOOP_COUNT > UINT8_MAX"
   #endif
 
-  // Try process ENC28J60_MAX_RECEIVE_LOOP_COUNT packets, then return -1 to avoid stealing all the system resources
+  /**
+   * Try process ENC28J60_MAX_RECEIVE_LOOP_COUNT packets,
+   * then return -1 to avoid stealing all the system resources
+   */
   uint8_t count;
   for (count = 1; count <= ENC28J60_MAX_RECEIVE_LOOP_COUNT; ++count) {
     if (enc28j60_read_register_byte(dev, EPKTCNT)) {
       if (1) {
-        const enc28j60_mem_ptr_t next_packet_pointer = ENC28J60_GET_NEXT_PACKET_POINTER(dev);
+        const enc28j60_mem_ptr_t next_packet_pointer =
+          ENC28J60_GET_NEXT_PACKET_POINTER(dev);
+
         /**
          * Advance the packet pointer to the start of the next packet
          */
-        enc28j60_write_register_word(dev, ERXRDPT,
-          enc28j60_erxrdpt_errata(next_packet_pointer));
+        enc28j60_write_register_word(
+          dev, ERXRDPT, enc28j60_erxrdpt_errata(next_packet_pointer));
 
         /**
          * Set the read pointer to the start of the next packet
@@ -516,7 +569,8 @@ eth_frm_len_t enc28j60_next_rx_packet(enc28j60_dev_t* dev) {
       uint8_t bytes[RSV_SIZE];
       enc28j60_buffer_read(dev, bytes, RSV_SIZE);
 
-      ENC28J60_SET_NEXT_PACKET_POINTER(dev, ENC28J60_UINT16(bytes[0], bytes[1]));
+      ENC28J60_SET_NEXT_PACKET_POINTER(
+        dev, ENC28J60_UINT16(bytes[0], bytes[1]));
 
       /**
        * Decrement the packet counter by 1
@@ -532,8 +586,12 @@ eth_frm_len_t enc28j60_next_rx_packet(enc28j60_dev_t* dev) {
   return count != ENC28J60_MAX_RECEIVE_LOOP_COUNT ? -1 : 0;
 }
 
-void enc28j60_read_rx_packet(enc28j60_dev_t* dev, uint8_t* buffer, eth_frm_len_t buffer_size) {
-  if (buffer_size > 0) {
+void enc28j60_read_rx_packet(
+  enc28j60_dev_t* dev,
+  uint8_t* buffer,
+  eth_frm_len_t buffer_size) {
+
+  if (buffer_size > 0) {
     if (unlikely(buffer_size > ENC28J60_MAX_FRAME_SIZE)) {
       buffer_size = ENC28J60_MAX_FRAME_SIZE;
     }
@@ -543,94 +601,108 @@ void enc28j60_read_rx_packet(enc28j60_dev_t* dev, uint8_t* buffer, eth_frm_len_t
 }
 
 static void enc28j60_reset_tx_logic(enc28j60_dev_t* dev) {
-  enc28j60_set_register_bit(dev, ECON1, ECON1_TXRST);
+  enc28j60_set_register_bit(dev, ECON1, ECON1_TXRST);
   hardware_platform_sleep_us(14);
-  enc28j60_clear_register_bit(dev, ECON1, ECON1_TXRST);
-  enc28j60_clear_register_bit(dev, EIR, EIR_TXERIF | EIR_TXIF | ECON1_TXRTS);
+
+  enc28j60_clear_register_bit(dev, ECON1, ECON1_TXRST);
+  enc28j60_clear_register_bit(dev, EIR,
+    (EIR_TXERIF | EIR_TXIF | ECON1_TXRTS));
 }
 
-static uint8_t enc28j60_tx_start(enc28j60_dev_t* dev, const eth_frm_len_t tx_size) {
+static uint8_t enc28j60_tx_start(
+  enc28j60_dev_t* dev,
+  const eth_frm_len_t tx_size) {
+
   #if ENC28J60_TRANSMIT_TIMEOUT_MS <= 0
     #error "ENC28J60_TRANSMIT_TIMEOUT_MS <= 0"
   #endif
 
-  const millisecond_timestamp_t start_millis =
+  const millisecond_timestamp_t start_millis =
     hardware_platform_milliseconds();
 
-  /**
-    * Start the transmission process by setting ECON1.TXRTS
-    */
-  enc28j60_set_register_bit(dev, ECON1, ECON1_TXRTS);
+  /**
+   * Start the transmission process by setting ECON1.TXRTS
+   */
+  enc28j60_set_register_bit(dev, ECON1, ECON1_TXRTS);
 
-  /**
-    * Wait for transmit to complete
-    */
-  uint8_t eir_status;
-  do {
-    eir_status = enc28j60_read_register_byte(dev, EIR) & (EIR_TXIF | EIR_TXERIF);
-  } while((eir_status == 0) &&
+  /**
+   * Wait for transmit to complete
+   */
+  uint8_t eir_status;
+  do {
+    eir_status = enc28j60_read_register_byte(dev, EIR) &
+      (EIR_TXIF | EIR_TXERIF);
+  } while((eir_status == 0) &&
     (ENC28J60_TRANSMIT_TIMEOUT_MS >
       (hardware_platform_milliseconds() - start_millis)));
 
-  /**
-   * From errata:
-   * 
-   *  Module: Transmit Logic
-   *  
-   *  In Half-Duplex mode, a hardware transmission abort – caused by excessive collisions, a late collision
-   *  or excessive deferrals – may stall the internal transmit logic. The next packet transmit initiated by
-   *  the host controller may never succeed. That is, ECON1.TXRTS could remain set indefinitely.
-   *  
-   *  Work around
-   *  Before attempting to transmit a packet (setting ECON1.TXRTS), reset the internal transmit logic
-   *  by setting ECON1.TXRST and then clearing ECON1.TXRST. The host controller may wish to
-   *  issue this Reset before any packet is transmitted (for simplicity), or it may wish to conditionally reset
-   *  the internal transmit logic based on the Transmit Error Interrupt Flag (EIR.TXERIF), which will
-   *  become set whenever a transmit abort occurs.
-   *  
-   *  Clearing ECON1.TXRST may cause a new transmit error interrupt event (with EIR.TXERIF
-   *  becoming set). Therefore, the interrupt flag should be cleared after the Reset is completed.
-   */
-  if (unlikely((eir_status == 0) || (((eir_status & EIR_TXIF) != 0)))) {
+  /**
+   * From errata:
+   *
+   *  Module: Transmit Logic
+   *
+   *  In Half-Duplex mode, a hardware transmission abort - caused by excessive collisions, a late collision
+   *  or excessive deferrals - may stall the internal transmit logic. The next packet transmit initiated by
+   *  the host controller may never succeed. That is, ECON1.TXRTS could remain set indefinitely.
+   *
+   *  Work around
+   *  Before attempting to transmit a packet (setting ECON1.TXRTS), reset the internal transmit logic
+   *  by setting ECON1.TXRST and then clearing ECON1.TXRST. The host controller may wish to
+   *  issue this Reset before any packet is transmitted (for simplicity), or it may wish to conditionally reset
+   *  the internal transmit logic based on the Transmit Error Interrupt Flag (EIR.TXERIF), which will
+   *  become set whenever a transmit abort occurs.
+   *
+   *  Clearing ECON1.TXRST may cause a new transmit error interrupt event (with EIR.TXERIF
+   *  becoming set). Therefore, the interrupt flag should be cleared after the Reset is completed.
+   */
+  if (unlikely((eir_status == 0) ||
+      (((eir_status & EIR_TXIF) != 0)))) {
+
     enc28j60_reset_tx_logic(dev);
-    return UINT8_MAX;
+    return UINT8_MAX;
   }
 
-  /**
-   * Set the read pointer to the end of the transmission buffer.
-   * Then read the Transmit Status Vector
-   */
-  enc28j60_write_register_word(dev, ERDPT, ENC28J60_TXSTART + 1 + tx_size + 2);
+  /**
+   * Set the read pointer to the end of the transmission buffer.
+   * Then read the Transmit Status Vector
+   */
+  enc28j60_write_register_word(dev, ERDPT,
+    (ENC28J60_TXSTART + 1 + tx_size + 2));
 
-  uint8_t tsv;
-  enc28j60_buffer_read(dev, &tsv, sizeof(tsv));
+  uint8_t tsv;
+  enc28j60_buffer_read(dev, &tsv, sizeof(tsv));
 
-  /**
-   * Reset the read pointer to the next packet pointer position
-   */
-  enc28j60_write_register_word(dev, ERDPT,
+  /**
+   * Reset the read pointer to the next packet pointer position
+   */
+  enc28j60_write_register_word(dev, ERDPT,
     ENC28J60_GET_NEXT_PACKET_POINTER(dev));
 
-  if (tsv & TSV_TX_DONE) {
-    return 0;
-  } else {
-    return INT8_MAX;
-  }
+  if (tsv & TSV_TX_DONE) {
+    return 0;
+  } else {
+    return INT8_MAX;
+  }
 }
 
-eth_frm_len_t enc28j60_write_tx_buffer(enc28j60_dev_t* dev, const uint8_t* buffer, eth_frm_len_t buffer_size) {
+eth_frm_len_t enc28j60_write_tx_buffer(
+  enc28j60_dev_t* dev,
+  const uint8_t* buffer,
+  eth_frm_len_t buffer_size) {
+
   const eth_frm_len_t offset = ENC28J60_GET_TX_SIZE(dev);
-  if (buffer_size > 0) {
+  if (buffer_size > 0) {
     const eth_frm_len_t tx_size = offset + buffer_size;
     if (likely(tx_size < ENC28J60_MAX_FRAME_SIZE)) {
-      // Set the write pointer to the offset
-      enc28j60_write_register_word(dev, EWRPT, ENC28J60_TXSTART + 1 + offset);
+      // Set the write pointer to the offset
+      enc28j60_write_register_word(dev, EWRPT,
+        (ENC28J60_TXSTART + 1 + offset));
 
       // Write data into the buffer
-      enc28j60_buffer_write(dev, buffer, buffer_size);
+      enc28j60_buffer_write(dev, buffer, buffer_size);
 
       // Update the current write buffer offset
-      ENC28J60_SET_TX_SIZE(dev, tx_size);
+      ENC28J60_SET_TX_SIZE(dev, tx_size);
 
       return ENC28J60_MAX_FRAME_SIZE - tx_size;
     } else {
@@ -643,44 +715,45 @@ eth_frm_len_t enc28j60_write_tx_buffer(enc28j60_dev_t* dev, const uint8_t* buffe
 
 enc28j60_tx_status_t enc28j60_execute_tx(enc28j60_dev_t* dev) {
   const eth_frm_len_t tx_size = ENC28J60_GET_TX_SIZE(dev);
-  if (likely(tx_size > 0)) {
-    /**
-     *  Appropriately program the ETXND Pointer. It should point to the last byte in the data payload.
-     */
-    enc28j60_write_register_word(dev, ETXND, ENC28J60_TXSTART + 1 + tx_size);
+  if (likely(tx_size > 0)) {
+    /**
+     * Appropriately program the ETXND Pointer. It should point to the last byte in the data payload.
+     */
+    enc28j60_write_register_word(dev, ETXND,
+      (ENC28J60_TXSTART + 1 + tx_size));
 
-    /**
-     * Start transmission
-     */
-    const uint8_t result = enc28j60_tx_start(dev);
+    /**
+     * Start transmission
+     */
+    const uint8_t result = enc28j60_tx_start(dev, tx_size);
 
-    /**
-     * Reset transmit memory for next write
-     */
-    enc28j60_write_register_word(dev, ETXST, ENC28J60_TXSTART);
+    /**
+     * Reset transmit memory for next write
+     */
+    enc28j60_write_register_word(dev, ETXST, ENC28J60_TXSTART);
 
-    /**
-     * Set the write pointer
-     */
-    enc28j60_write_register_word(dev, EWRPT, ENC28J60_TXSTART);
+    /**
+     * Set the write pointer
+     */
+    enc28j60_write_register_word(dev, EWRPT, ENC28J60_TXSTART);
 
-    /**
-     * Write the per packet control byte
-     */
-    enc28j60_write_op(dev, ENC28J60_WRITE_BUF_MEM, 0, 0);
+    /**
+     * Write the per packet control byte
+     */
+    enc28j60_write_op(dev, ENC28J60_WRITE_BUF_MEM, 0, 0);
 
-    ENC28J60_SET_TX_SIZE(dev, 0);
+    ENC28J60_SET_TX_SIZE(dev, 0);
 
-    if (result == 0) {
-      return ETH_TX_SUCCESS;
-    } else if (result == UINT8_MAX) {
-      return ETH_TX_TIMEOUT;
+    if (result == 0) {
+      return ENC28J60_TX_SUCCESS;
+    } else if (result == UINT8_MAX) {
+      return ENC28J60_TX_TIMEOUT;
     } else {
-      return ETH_TX_ERROR;
+      return ENC28J60_TX_ERROR;
     }
   } else {
-    return ETH_TX_BUFFER_EMPTY;
-  }
+    return ENC28J60_TX_BUFFER_EMPTY;
+  }
 }
 
 /**
@@ -688,7 +761,10 @@ enc28j60_tx_status_t enc28j60_execute_tx(enc28j60_dev_t* dev) {
  * This function however is a really good test to determine if the ENC28J60
  * is working as expected
  */
-static uint8_t enc28j60_built_in_self_test(enc28j60_dev_t* dev, const uint8_t mode) {
+static uint8_t enc28j60_built_in_self_test(
+  enc28j60_dev_t* dev,
+  const uint8_t mode) {
+
   enc28j60_reset(dev);
 
   /**
@@ -735,9 +811,9 @@ static uint8_t enc28j60_built_in_self_test(enc28j60_dev_t* dev, const uint8_t mo
     */
 
     enc28j60_write_register_byte(dev, EBSTCON,
-      EBSTCON_TME | EBSTCON_BISTST | mode);
+      (EBSTCON_TME | EBSTCON_BISTST | mode));
   } else {
-    /*
+    /**
      * 4. Write the seed/initial shift value byte to the EBSTSD register 
      * (this is not necessary if Address Fill mode is used).
      */
@@ -757,7 +833,7 @@ static uint8_t enc28j60_built_in_self_test(enc28j60_dev_t* dev, const uint8_t mo
        */
 
       enc28j60_write_register_byte(dev, EBSTCON,
-        EBSTCON_TME | EBSTCON_PSEL | EBSTCON_BISTST | mode);
+        (EBSTCON_TME | EBSTCON_PSEL | EBSTCON_BISTST | mode));
     } else {
       return 0;
     }
@@ -767,7 +843,7 @@ static uint8_t enc28j60_built_in_self_test(enc28j60_dev_t* dev, const uint8_t mo
   do {
     hardware_platform_sleep_us(100);
     if (0 == --count) {
-      break;
+     break;
     }
   } while(enc28j60_read_op(dev, ENC28J60_READ_CTRL_REG, EBSTCON) & EBSTCON_BISTST);
 
@@ -831,15 +907,15 @@ static uint8_t enc28j60_built_in_self_test(enc28j60_dev_t* dev, const uint8_t mo
   }
 }
 
-enc28j60_init_status_t enc28j60_eth_driver(
+enc28j60_init_status_t enc28j60_initialize(
     enc28j60_dev_t* dev,
 
     #if (CUSTOM_CHIP_SELECT_FUNCTION == FALSE)
-      enc28j60_chip_select_f chip_select,
+      enc28j60_chip_select_f chip_select_function,
     #endif
 
     #if (CUSTOM_SPI_TXRX_FUNCTION == FALSE)
-      enc28j60_spi_txrx_f spi_txrx,
+      enc28j60_spi_txrx_f spi_txrx_function,
     #endif
 
     const mac_addr_t mac_address,
@@ -848,11 +924,11 @@ enc28j60_init_status_t enc28j60_eth_driver(
   if (unlikely(dev == 0 ||
 
     #if (CUSTOM_CHIP_SELECT_FUNCTION == FALSE)
-      chip_select == 0 ||
+      chip_select_function == 0 ||
     #endif
 
     #if (CUSTOM_SPI_TXRX_FUNCTION == FALSE)
-      spi_txrx == 0 ||
+      spi_txrx_function == 0 ||
     #endif
 
     mac_address == 0)) {
@@ -861,11 +937,11 @@ enc28j60_init_status_t enc28j60_eth_driver(
   }
 
   #if (CUSTOM_CHIP_SELECT_FUNCTION == FALSE)
-    dev->chip_select = chip_select;
+    dev->chip_select_function = chip_select_function;
   #endif
 
   #if (CUSTOM_SPI_TXRX_FUNCTION == FALSE)
-    dev->spi_txrx = spi_txrx;
+    dev->spi_txrx_function = spi_txrx_function;
   #endif
 
   if (!(options & ENC28J60_SKIP_SELF_TEST)) {
@@ -914,7 +990,7 @@ enc28j60_rev_t enc28j60_hardware_revision(enc28j60_dev_t* dev) {
   return enc28j60_read_register_byte(dev, EREVID);
 }
 
-eth_link_status_t enc28j60_link_status(enc28j60_dev_t* dev) {
+enc28j60_link_status_t enc28j60_link_status(enc28j60_dev_t* dev) {
   const uint16_t phstat2 = enc28j60_phy_read(dev, PHSTAT2);
 
   if (!(phstat2 & PHSTAT2_LSTAT)) {

@@ -4,7 +4,7 @@
 #define ENC28J60_CHIP_SELECT_PIN 10
 
 const mac_addr_t mac = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-eth_driver_t driver;
+enc28j60_dev_t dev;
 
 static void enc28j60ChipSelect(const enc28j60_chip_select_t chipSelect) {
   if (chipSelect == ENC28J60_CHIP_SELECT_LOW) {
@@ -24,7 +24,7 @@ static void initENC28J60() {
   SPI.setClockDivider(SPI_CLOCK_DIV2);
   SPI.begin();
 
-  enc28j60_init_status_t status = enc28j60_eth_driver(&driver, &enc28j60ChipSelect, &enc28j60SpiTransfer, mac, ENC28J60_FULL_DUPLEX);
+  enc28j60_init_status_t status = enc28j60_initialize(&dev, &enc28j60ChipSelect, &enc28j60SpiTransfer, mac, ENC28J60_FULL_DUPLEX);
 
   Serial.print(F("Init status: "));
   switch(status) {
@@ -37,7 +37,7 @@ static void initENC28J60() {
   Serial.print(F("\n"));
 
   Serial.print(F("Device revision:"));
-  Serial.print(enc28j60_hardware_revision(&driver), DEC);
+  Serial.print(enc28j60_hardware_revision(&dev), DEC);
   Serial.print(F("\n"));
 
 }
@@ -62,10 +62,10 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   Serial.print(F("Link status:"));
-  switch(enc28j60_link_status(&driver)) {
-    case ETH_LINK_DOWN: { Serial.print(F("Link down")); break; }
-    case ETH_10M_HALF_DUPLEX: { Serial.print(F("Up 10Mb/s Half Duplex")); break; }
-    case ETH_10M_FULL_DUPLEX: { Serial.print(F("Up 10Mb/s Full Duplex")); break; }
+  switch(enc28j60_link_status(&dev)) {
+    case ENC28J60_LINK_DOWN: { Serial.print(F("Link down")); break; }
+    case ENC28J60_10M_HALF_DUPLEX: { Serial.print(F("Up 10Mb/s Half Duplex")); break; }
+    case ENC28J60_10M_FULL_DUPLEX: { Serial.print(F("Up 10Mb/s Full Duplex")); break; }
   }
   Serial.print(F("\n"));
 

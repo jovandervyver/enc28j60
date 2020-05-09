@@ -100,7 +100,7 @@ extern "C" {
     #define CUSTOM_SPI_TXRX_FUNCTION    FALSE
 
     #define SPI_TXRX_FUNCTION(_dev_, _spi_data_) \
-      (_dev_)->spi_function(_spi_data_)
+      (_dev_)->spi_txrx_function(_spi_data_)
 
     /**
      * Transfer the provided byte to the ENC28J60 followed by reading the
@@ -111,6 +111,9 @@ extern "C" {
   #else
     #define CUSTOM_SPI_TXRX_FUNCTION    TRUE
   #endif
+
+  typedef uint8_t  enc28j60_addr_t;
+  typedef uint16_t enc28j60_mem_ptr_t;
 
   /**
    * ENC28J60 device struct
@@ -134,11 +137,11 @@ extern "C" {
     enc28j60_dev_t* dev,
 
     #if (CUSTOM_CHIP_SELECT_FUNCTION == FALSE)
-      enc28j60_chip_select_f chip_select,
+      enc28j60_chip_select_f chip_select_function,
     #endif
 
     #if (CUSTOM_SPI_TXRX_FUNCTION == FALSE)
-      enc28j60_spi_txrx_f spi_txrx,
+      enc28j60_spi_txrx_f spi_txrx_function,
     #endif
 
     const mac_addr_t mac_address,
