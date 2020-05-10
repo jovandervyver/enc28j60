@@ -589,13 +589,9 @@ eth_frm_len_t enc28j60_next_rx_packet(enc28j60_dev_t* dev) {
 void enc28j60_read_rx_packet(
   enc28j60_dev_t* dev,
   uint8_t* buffer,
-  eth_frm_len_t buffer_size) {
+  const eth_frm_len_t buffer_size) {
 
   if (buffer_size > 0) {
-    if (unlikely(buffer_size > ENC28J60_MAX_FRAME_SIZE)) {
-      buffer_size = ENC28J60_MAX_FRAME_SIZE;
-    }
-
     enc28j60_buffer_read(dev, buffer, buffer_size);
   }
 }
@@ -688,7 +684,7 @@ static uint8_t enc28j60_tx_start(
 eth_frm_len_t enc28j60_write_tx_buffer(
   enc28j60_dev_t* dev,
   const uint8_t* buffer,
-  eth_frm_len_t buffer_size) {
+  const eth_frm_len_t buffer_size) {
 
   const eth_frm_len_t offset = ENC28J60_GET_TX_SIZE(dev);
   if (buffer_size > 0) {
@@ -988,6 +984,15 @@ void enc28j60_close(enc28j60_dev_t* dev) {
 
 enc28j60_rev_t enc28j60_hardware_revision(enc28j60_dev_t* dev) {
   return enc28j60_read_register_byte(dev, EREVID);
+}
+
+void enc28j60_mac_address(enc28j60_dev_t* dev, mac_addr_t mac_address) {
+  mac_address[0] = enc28j60_read_register_byte(dev, MAADR5);
+  mac_address[1] = enc28j60_read_register_byte(dev, MAADR4);
+  mac_address[2] = enc28j60_read_register_byte(dev, MAADR3);
+  mac_address[3] = enc28j60_read_register_byte(dev, MAADR2);
+  mac_address[4] = enc28j60_read_register_byte(dev, MAADR1);
+  mac_address[5] = enc28j60_read_register_byte(dev, MAADR0);
 }
 
 enc28j60_link_status_t enc28j60_link_status(enc28j60_dev_t* dev) {

@@ -149,15 +149,17 @@ extern "C" {
 
   eth_frm_len_t enc28j60_next_rx_packet(enc28j60_dev_t* dev);
 
-  void enc28j60_read_rx_packet(enc28j60_dev_t* dev, uint8_t* buffer, eth_frm_len_t buffer_size);
+  void enc28j60_read_rx_packet(enc28j60_dev_t* dev, uint8_t* buffer, const eth_frm_len_t buffer_size);
 
-  eth_frm_len_t enc28j60_write_tx_buffer(enc28j60_dev_t* dev, const uint8_t* buffer, eth_frm_len_t buffer_size);
+  eth_frm_len_t enc28j60_write_tx_buffer(enc28j60_dev_t* dev, const uint8_t* buffer, const eth_frm_len_t buffer_size);
 
   enc28j60_tx_status_t enc28j60_execute_tx(enc28j60_dev_t* dev);
 
   void enc28j60_close(enc28j60_dev_t* dev);
 
   enc28j60_rev_t enc28j60_hardware_revision(enc28j60_dev_t* dev);
+
+  void enc28j60_mac_address(enc28j60_dev_t* dev, mac_addr_t mac_address);
 
   enc28j60_link_status_t enc28j60_link_status(enc28j60_dev_t* dev);
 
